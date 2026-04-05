@@ -1,0 +1,19 @@
+{
+  "name": "moonlight-rose",
+  "version": "1.0.0",
+  "description": "月光蔷薇学园：命运的约定 - 百合向视觉小说游戏",
+  "main": "index.js",
+  "scripts": {
+    "build": "cordova build android",
+    "android": "cordova run android"
+  },
+  "keywords": ["game", "visual-novel", "cordova", "android"],
+  "author": "月光蔷薇学园制作组",
+  "license": "MIT",
+  "devDependencies": {
+    "cordova": "^12.0.0"
+  },
+  "cordova": {
+    "platforms": ["android"]
+  }
+}

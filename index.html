@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2d1b4e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>月光蔷薇学园：命运的约定</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple-dark: #1a0f2e;
+            --purple-main: #2d1b4e;
+            --gold: #c9a227;
+            --rose: #9b2335;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: var(--purple-dark);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+        .screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+        }
+        .screen.active { display: block; }
+        #loading-screen {
+            background: linear-gradient(180deg, var(--purple-main) 0%, var(--purple-dark) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .loading-logo {
+            width: 150px; height: 150px;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .loading-title {
+            margin-top: 30px;
+            font-size: 28px;
+            color: var(--gold);
+            letter-spacing: 8px;
+        }
+        .loading-bar {
+            width: 250px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-top: 25px;
+            overflow: hidden;
+        }
+        .loading-progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--gold), var(--rose));
+            border-radius: 3px;
+            transition: width 0.2s ease;
+        }
+        #main-menu {
+            background: linear-gradient(180deg, var(--purple-main) 0%, var(--purple-dark) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .game-title {
+            font-size: 48px;
+            color: var(--gold);
+            text-shadow: 0 0 30px rgba(201, 162, 39, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 6px;
+        }
+        .game-subtitle {
+            font-size: 16px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 50px;
+            letter-spacing: 3px;
+        }
+        .menu-btn {
+            width: 240px;
+            padding: 15px 30px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, rgba(139, 77, 126, 0.5), rgba(45, 27, 78, 0.7));
+            border: 2px solid var(--gold);
+            border-radius: 25px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .menu-btn:hover {
+            background: linear-gradient(135deg, var(--gold), var(--rose));
+            transform: translateY(-3px);
+        }
+        #story-screen { background: #000; }
+        .story-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+        }
+        .story-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(26, 15, 46, 0.3) 0%, rgba(26, 15, 46, 0.8) 100%);
+        }
+        .character-container {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 60%;
+            display: flex;
+            align-items: flex-end;
+        }
+        .character {
+            height: 100%;
+            max-width: 350px;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+        }
+        .dialogue-box {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1000px;
+            background: rgba(45, 27, 78, 0.95);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 20px 25px;
+            cursor: pointer;
+        }
+        .speaker-name {
+            display: inline-block;
+            font-size: 16px;
+            color: var(--gold);
+            padding: 5px 15px;
+            background: rgba(201, 162, 39, 0.15);
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+        .dialogue-text {
+            font-size: 18px;
+            line-height: 1.7;
+            color: #fff;
+            min-height: 60px;
+        }
+        .story-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .control-btn {
+            width: 40px; height: 40px;
+            background: rgba(45, 27, 78, 0.8);
+            border: 1px solid var(--gold);
+            border-radius: 50%;
+            color: var(--gold);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .control-btn:hover {
+            background: var(--gold);
+            color: var(--purple-dark);
+        }
+        #wardrobe-screen {
+            background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-main) 100%);
+            overflow: auto;
+        }
+        .wardrobe-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+        }
+        .wardrobe-title {
+            font-size: 24px;
+            color: var(--gold);
+        }
+        .back-btn {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--gold);
+            border-radius: 20px;
+            color: var(--gold);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            background: var(--gold);
+            color: var(--purple-dark);
+        }
+        .wardrobe-content {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            height: calc(100% - 80px);
+        }
+        .preview-area {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .preview-frame {
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: rgba(139, 77, 126, 0.2);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .preview-frame img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        .score-panel {
+            width: 100%;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(45, 27, 78, 0.7);
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+        }
+        .score-value {
+            text-align: center;
+            font-size: 36px;
+            color: var(--gold);
+            font-weight: bold;
+        }
+        .clothes-area {
+            flex: 1;
+            background: rgba(45, 27, 78, 0.5);
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .category-tabs {
+            display: flex;
+            background: rgba(0,0,0,0.3);
+        }
+        .category-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .category-tab.active {
+            border-bottom-color: var(--gold);
+            color: var(--gold);
+            background: rgba(201, 162, 39, 0.1);
+        }
+        .clothes-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100% - 50px);
+        }
+        .clothes-item {
+            aspect-ratio: 1;
+            background: rgba(139, 77, 126, 0.3);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .clothes-item:hover {
+            border-color: var(--gold);
+            transform: translateY(-3px);
+        }
+        .clothes-item.selected {
+            border-color: var(--rose);
+            box-shadow: 0 0 15px rgba(155, 35, 53, 0.4);
+        }
+        .clothes-item img {
+            width: 100%;
+            height: 65%;
+            object-fit: contain;
+        }
+        .clothes-item .name {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .clothes-item .rarity {
+            font-size: 10px;
+            color: var(--gold);
+        }
+        #raising-screen {
+            background: linear-gradient(180deg, var(--purple-dark) 0%, var(--purple-main) 100%);
+        }
+        .raising-content {
+            display: flex;
+            padding: 20px;
+            gap: 30px;
+            height: calc(100% - 80px);
+        }
+        .chibi-area {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .chibi-container {
+            position: relative;
+            width: 250px;
+            height: 300px;
+        }
+        .chibi {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+        }
+        .chibi:hover {
+            transform: scale(1.05);
+        }
+        .speech-bubble {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            color: var(--purple-dark);
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 13px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .speech-bubble.show {
+            opacity: 1;
+        }
+        .stats-area {
+            flex: 1;
+            max-width: 450px;
+            padding: 25px;
+            background: rgba(45, 27, 78, 0.7);
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+        }
+        .stats-title {
+            font-size: 20px;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .stat-item {
+            margin-bottom: 20px;
+        }
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .stat-bar {
+            height: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .stat-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        .stat-fill.affection { background: linear-gradient(90deg, var(--rose), #ff6b8a); }
+        .stat-fill.mood { background: linear-gradient(90deg, #ffd700, #ffed4e); }
+        .stat-fill.trust { background: linear-gradient(90deg, #4a90d9, #87ceeb); }
+        .stat-fill.intimacy { background: linear-gradient(90deg, #8b4d7e, #da70d6); }
+        .interactions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 25px;
+        }
+        .interact-btn {
+            padding: 15px;
+            background: rgba(139, 77, 126, 0.4);
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        .interact-btn:hover {
+            background: linear-gradient(135deg, var(--gold), var(--rose));
+            transform: translateY(-3px);
+        }
+        #gallery-screen {
+            background: rgba(0,0,0,0.95);
+            overflow: auto;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 80px 40px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .gallery-item {
+            aspect-ratio: 16/9;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .gallery-item:hover {
+            border-color: var(--gold);
+            transform: scale(1.02);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .gallery-item.locked {
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+        .cg-viewer {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .cg-viewer.active {
+            display: flex;
+        }
+        .cg-viewer img {
+            max-width: 90%;
+            max-height: 90%;
+            border: 3px solid var(--gold);
+            border-radius: 10px;
+        }
+        .cg-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 36px;
+            color: var(--gold);
+            cursor: pointer;
+        }
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(45, 27, 78, 0.95);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 15px 30px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen" class="screen active">
+        <div class="loading-logo">🌹</div>
+        <div class="loading-title">月光蔷薇学园</div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="loading-progress"></div>
+        </div>
+    </div>
+    <div id="main-menu" class="screen">
+        <div class="game-title">月光蔷薇学园</div>
+        <div class="game-subtitle">命运的约定</div>
+        <button class="menu-btn" onclick="game.startStory()">开始游戏</button>
+        <button class="menu-btn" onclick="game.openWardrobe()">换装系统</button>
+        <button class="menu-btn" onclick="game.openRaising()">养成系统</button>
+        <button class="menu-btn" onclick="game.openGallery()">CG画廊</button>
+    </div>
+    <div id="story-screen" class="screen">
+        <div class="story-bg" id="story-bg"></div>
+        <div class="story-overlay"></div>
+        <div class="character-container" id="char-container"></div>
+        <div class="dialogue-box" onclick="game.advanceDialogue()">
+            <div class="speaker-name" id="speaker-name"></div>
+            <div class="dialogue-text" id="dialogue-text"></div>
+        </div>
+        <div class="story-controls">
+            <button class="control-btn" onclick="game.toggleAuto()" title="自动">▶</button>
+            <button class="control-btn" onclick="game.skip()" title="跳过">⏭</button>
+            <button class="control-btn" onclick="game.save()" title="存档">💾</button>
+            <button class="control-btn" onclick="game.load()" title="读档">📂</button>
+            <button class="control-btn" onclick="game.toMenu()" title="菜单">☰</button>
+        </div>
+    </div>
+    <div id="wardrobe-screen" class="screen">
+        <div class="wardrobe-header">
+            <div class="wardrobe-title">👗 换装系统</div>
+            <button class="back-btn" onclick="game.toMenu()">返回</button>
+        </div>
+        <div class="wardrobe-content">
+            <div class="preview-area">
+                <div class="preview-frame">
+                    <img src="" id="preview-img" alt="预览">
+                </div>
+                <div class="score-panel">
+                    <div class="score-value" id="score">0</div>
+                </div>
+            </div>
+            <div class="clothes-area">
+                <div class="category-tabs">
+                    <div class="category-tab active" onclick="game.switchTab('tops')">上衣</div>
+                    <div class="category-tab" onclick="game.switchTab('bottoms')">下装</div>
+                    <div class="category-tab" onclick="game.switchTab('dresses')">连衣裙</div>
+                </div>
+                <div class="clothes-grid" id="clothes-grid"></div>
+            </div>
+        </div>
+    </div>
+    <div id="raising-screen" class="screen">
+        <div class="wardrobe-header">
+            <div class="wardrobe-title">💕 养成系统</div>
+            <button class="back-btn" onclick="game.toMenu()">返回</button>
+        </div>
+        <div class="raising-content">
+            <div class="chibi-area">
+                <div class="chibi-container">
+                    <div class="speech-bubble" id="bubble"></div>
+                    <div class="chibi" id="chibi-char" onclick="game.pet()">🌹</div>
+                </div>
+            </div>
+            <div class="stats-area">
+                <div class="stats-title">凌子的心情</div>
+                <div class="stat-item">
+                    <div class="stat-label"><span>❤️ 好感度</span><span id="val-aff">0/100</span></div>
+                    <div class="stat-bar"><div class="stat-fill affection" id="bar-aff" style="width:0%"></div></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label"><span>😊 心情值</span><span id="val-mood">50/100</span></div>
+                    <div class="stat-bar"><div class="stat-fill mood" id="bar-mood" style="width:50%"></div></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label"><span>🤝 信任度</span><span id="val-trust">0/100</span></div>
+                    <div class="stat-bar"><div class="stat-fill trust" id="bar-trust" style="width:0%"></div></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label"><span>💕 亲密度</span><span id="val-int">0/100</span></div>
+                    <div class="stat-bar"><div class="stat-fill intimacy" id="bar-int" style="width:0%"></div></div>
+                </div>
+                <div class="interactions">
+                    <button class="interact-btn" onclick="game.interact('feed')">🍰 喂食</button>
+                    <button class="interact-btn" onclick="game.interact('chat')">💬 聊天</button>
+                    <button class="interact-btn" onclick="game.interact('gift')">🎁 送礼</button>
+                    <button class="interact-btn" onclick="game.interact('hug')">🤗 拥抱</button>
+                    <button class="interact-btn" onclick="game.interact('sing')">🎵 唱歌</button>
+                    <button class="interact-btn" onclick="game.interact('sleep')">😴 哄睡</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="gallery-screen" class="screen">
+        <div class="wardrobe-header">
+            <div class="wardrobe-title">🖼️ CG画廊</div>
+            <button class="back-btn" onclick="game.toMenu()">返回</button>
+        </div>
+        <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+    <div class="cg-viewer" id="cg-viewer" onclick="game.closeCG()">
+        <span class="cg-close">×</span>
+        <img src="" id="cg-img">
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+    const ASSETS = {
+        scenes: { mirror: '', garden: '', dormitory: '', music: '', library: '', clock: '', hall: '', greenhouse: '' },
+        sprites: { lingzi_default: '', lingzi_happy: '', lingzi_shy: '', lingzi_sad: '', lingzi_mysterious: '' },
+        chibi: '',
+        cgs: [],
+        clothes: {
+            tops: [
+                { id: 't1', src: '', name: '紫罗兰蕾丝上衣', g: 85, c: 60, e: 90, p: 70, r: '⭐⭐⭐⭐' },
+                { id: 't2', src: '', name: '红丝绒高领上衣', g: 90, c: 50, e: 80, p: 60, r: '⭐⭐⭐⭐⭐' },
+                { id: 't3', src: '', name: '淡紫雪纺上衣', g: 60, c: 80, e: 75, p: 90, r: '⭐⭐⭐' },
+                { id: 't4', src: '', name: '深红制服上衣', g: 70, c: 65, e: 85, p: 75, r: '⭐⭐⭐' },
+                { id: 't5', src: '', name: '黑纱蕾丝上衣', g: 95, c: 55, e: 88, p: 50, r: '⭐⭐⭐⭐⭐' }
+            ],
+            bottoms: [
+                { id: 'b1', src: '', name: '紫丝绒短裙裤', g: 80, c: 75, e: 85, p: 70, r: '⭐⭐⭐⭐' },
+                { id: 'b2', src: '', name: '红蓬蓬裙裤', g: 85, c: 90, e: 70, p: 75, r: '⭐⭐⭐⭐' },
+                { id: 'b3', src: '', name: '淡紫雪纺长裙', g: 70, c: 75, e: 90, p: 95, r: '⭐⭐⭐⭐' },
+                { id: 'b4', src: '', name: '黑紧身长裤', g: 75, c: 60, e: 80, p: 70, r: '⭐⭐⭐' },
+                { id: 'b5', src: '', name: '红丝绒灯笼裤', g: 88, c: 85, e: 75, p: 65, r: '⭐⭐⭐⭐⭐' }
+            ],
+            dresses: [
+                { id: 'd1', src: '', name: '黑金蕾丝连衣裙', g: 95, c: 65, e: 92, p: 60, r: '⭐⭐⭐⭐⭐' },
+                { id: 'd2', src: '', name: '红丝绒礼服裙', g: 98, c: 60, e: 95, p: 55, r: '⭐⭐⭐⭐⭐' },
+                { id: 'd3', src: '', name: '淡紫雪纺连衣裙', g: 70, c: 85, e: 88, p: 92, r: '⭐⭐⭐⭐' },
+                { id: 'd4', src: '', name: '紫宫廷礼服裙', g: 100, c: 55, e: 98, p: 65, r: '⭐⭐⭐⭐⭐' },
+                { id: 'd5', src: '', name: '黑纱晚礼服', g: 96, c: 58, e: 94, p: 52, r: '⭐⭐⭐⭐⭐' }
+            ]
+        }
+    };
+    const STORY = [
+        { scene: 'mirror', speaker: '凌子', sprite: 'lingzi_mysterious', text: '欢迎来到月光蔷薇学园，我在这里等你很久了...' },
+        { scene: 'mirror', speaker: '凌子', sprite: 'lingzi_default', text: '从今晚开始，我们就是室友了。请多关照。' },
+        { scene: 'garden', speaker: '凌子', sprite: 'lingzi_happy', text: '这里的蔷薇只有在月光下才会完全绽放，就像...某些感情一样。' }
+    ];
+    const LINES = {
+        feed: ['好好吃！谢谢主人！', '凌子最喜欢这个了！', '主人对凌子真好~'],
+        chat: ['和主人聊天最开心了！', '主人今天过得怎么样？', '凌子有很多话想跟主人说呢'],
+        gift: ['这是给凌子的吗？谢谢主人！', '哇！好漂亮的礼物！', '凌子会好好珍惜的！'],
+        hug: ['主人的怀抱好温暖...', '凌子好喜欢被主人抱着', '就这样一直抱着好吗？'],
+        sing: ['主人唱歌真好听~', '凌子也想学这首歌', '这首歌让凌子想起了很多...'],
+        sleep: ['凌子好困...晚安主人...', '在主人身边睡觉最安心了', '做个好梦...']
+    };
+    let state = {
+        dialogueIndex: 0, isTyping: false, autoPlay: false, typeTimer: null,
+        unlockedCGs: [], stats: { affection: 0, mood: 50, trust: 0, intimacy: 0 },
+        outfit: { top: null, bottom: null, dress: null }, currentTab: 'tops'
+    };
+    function loadSave() {
+        const saved = localStorage.getItem('moonlightRose');
+        if (saved) {
+            const data = JSON.parse(saved);
+            state.unlockedCGs = data.unlockedCGs || [];
+            state.stats = data.stats || { affection: 0, mood: 50, trust: 0, intimacy: 0 };
+            state.outfit = data.outfit || { top: null, bottom: null, dress: null };
+        }
+    }
+    function saveData() {
+        localStorage.setItem('moonlightRose', JSON.stringify({
+            unlockedCGs: state.unlockedCGs, stats: state.stats, outfit: state.outfit
+        }));
+    }
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+    function startLoading() {
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15 + 5;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                setTimeout(() => showScreen('main-menu'), 300);
+            }
+            document.getElementById('loading-progress').style.width = progress + '%';
+        }, 100);
+    }
+    function showDialogue(idx) {
+        if (idx >= STORY.length) return;
+        state.dialogueIndex = idx;
+        const d = STORY[idx];
+        if (state.typeTimer) clearTimeout(state.typeTimer);
+        document.getElementById('story-bg').style.background = 'linear-gradient(135deg, #2d1b4e, #1a0f2e)';
+        const container = document.getElementById('char-container');
+        container.innerHTML = '';
+        document.getElementById('speaker-name').textContent = d.speaker;
+        const el = document.getElementById('dialogue-text');
+        el.textContent = '';
+        state.isTyping = true;
+        let i = 0;
+        const type = () => {
+            if (i < d.text.length) {
+                el.textContent += d.text[i];
+                i++;
+                state.typeTimer = setTimeout(type, 30);
+            } else {
+                state.isTyping = false;
+                if (state.autoPlay) setTimeout(() => advanceDialogue(), 1200);
+            }
+        };
+        type();
+    }
+    function advanceDialogue() {
+        if (state.isTyping) {
+            if (state.typeTimer) clearTimeout(state.typeTimer);
+            document.getElementById('dialogue-text').textContent = STORY[state.dialogueIndex].text;
+            state.isTyping = false;
+        } else {
+            showDialogue(state.dialogueIndex + 1);
+        }
+    }
+    function skip() {
+        if (state.typeTimer) clearTimeout(state.typeTimer);
+        showDialogue(state.dialogueIndex + 1);
+    }
+    function toggleAuto() {
+        state.autoPlay = !state.autoPlay;
+    }
+    function renderClothes() {
+        const grid = document.getElementById('clothes-grid');
+        grid.innerHTML = '';
+        const items = ASSETS.clothes[state.currentTab] || [];
+        const type = state.currentTab === 'tops' ? 'top' : state.currentTab === 'bottoms' ? 'bottom' : 'dress';
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'clothes-item';
+            if (state.outfit[type] === item.id) div.classList.add('selected');
+            div.innerHTML = `<div class="rarity">${item.r}</div><div style="width:100%;height:65%;display:flex;align-items:center;justify-content:center;font-size:40px;">👗</div><div class="name">${item.name}</div>`;
+            div.onclick = () => selectClothes(item, type);
+            grid.appendChild(div);
+        });
+    }
+    function selectClothes(item, type) {
+        if (type === 'dress') { state.outfit.top = null; state.outfit.bottom = null; }
+        else if (type === 'top' || type === 'bottom') { state.outfit.dress = null; }
+        state.outfit[type] = state.outfit[type] === item.id ? null : item.id;
+        renderClothes();
+        updateScore();
+        saveData();
+    }
+    function updateScore() {
+        let g = 0, c = 0, e = 0, p = 0, count = 0;
+        const add = (item) => { if (item) { g += item.g; c += item.c; e += item.e; p += item.p; count++; } };
+        if (state.outfit.dress) add(ASSETS.clothes.dresses.find(d => d.id === state.outfit.dress));
+        else { add(ASSETS.clothes.tops.find(t => t.id === state.outfit.top)); add(ASSETS.clothes.bottoms.find(b => b.id === state.outfit.bottom)); }
+        const score = count ? Math.round((g + c + e + p) / (count * 4)) : 0;
+        document.getElementById('score').textContent = score;
+    }
+    function updateStats() {
+        const s = state.stats;
+        document.getElementById('val-aff').textContent = `${s.affection}/100`;
+        document.getElementById('bar-aff').style.width = `${s.affection}%`;
+        document.getElementById('val-mood').textContent = `${s.mood}/100`;
+        document.getElementById('bar-mood').style.width = `${s.mood}%`;
+        document.getElementById('val-trust').textContent = `${s.trust}/100`;
+        document.getElementById('bar-trust').style.width = `${s.trust}%`;
+        document.getElementById('val-int').textContent = `${s.intimacy}/100`;
+        document.getElementById('bar-int').style.width = `${s.intimacy}%`;
+    }
+    function showBubble(text) {
+        const bubble = document.getElementById('bubble');
+        bubble.textContent = text;
+        bubble.classList.add('show');
+        setTimeout(() => bubble.classList.remove('show'), 2500);
+    }
+    function addStat(stat, val) {
+        state.stats[stat] = Math.min(100, state.stats[stat] + val);
+        updateStats();
+        saveData();
+    }
+    function renderGallery() {
+        const grid = document.getElementById('gallery-grid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= 6; i++) {
+            const div = document.createElement('div');
+            div.className = 'gallery-item';
+            div.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2d1b4e,#1a0f2e);"><span style="font-size:60px;">🌹</span></div>`;
+            grid.appendChild(div);
+        }
+    }
+    function showCG(src) {
+        document.getElementById('cg-img').src = src;
+        document.getElementById('cg-viewer').classList.add('active');
+    }
+    function closeCG() {
+        document.getElementById('cg-viewer').classList.remove('active');
+    }
+    const game = {
+        startStory() { showScreen('story-screen'); showDialogue(0); },
+        openWardrobe() { showScreen('wardrobe-screen'); renderClothes(); updateScore(); },
+        openRaising() { showScreen('raising-screen'); updateStats(); },
+        openGallery() { showScreen('gallery-screen'); renderGallery(); },
+        switchTab(tab) {
+            state.currentTab = tab;
+            document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderClothes();
+        },
+        advanceDialogue, skip, toggleAuto,
+        toMenu() { showScreen('main-menu'); },
+        save() {
+            localStorage.setItem('moonlightRose_save', JSON.stringify({
+                dialogueIndex: state.dialogueIndex, unlockedCGs: state.unlockedCGs,
+                stats: state.stats, outfit: state.outfit
+            }));
+            showToast('游戏已存档');
+        },
+        load() {
+            const saved = localStorage.getItem('moonlightRose_save');
+            if (saved) {
+                const data = JSON.parse(saved);
+                state.dialogueIndex = data.dialogueIndex || 0;
+                state.unlockedCGs = data.unlockedCGs || [];
+                state.stats = data.stats || { affection: 0, mood: 50, trust: 0, intimacy: 0 };
+                state.outfit = data.outfit || { top: null, bottom: null, dress: null };
+                showToast('游戏已读档');
+            } else showToast('没有存档');
+        },
+        pet() {
+            showBubble('摸摸头~好舒服呀~');
+            addStat('mood', 3);
+            addStat('intimacy', 2);
+        },
+        interact(type) {
+            const lines = LINES[type];
+            showBubble(lines[Math.floor(Math.random() * lines.length)]);
+            const effects = { feed: { mood: 5, affection: 3 }, chat: { trust: 5, affection: 4 }, gift: { affection: 8, mood: 5, intimacy: 5 }, hug: { intimacy: 8, mood: 5, trust: 3 }, sing: { mood: 5, trust: 4 }, sleep: { mood: 3, trust: 2 } };
+            Object.entries(effects[type]).forEach(([k, v]) => addStat(k, v));
+        },
+        closeCG
+    };
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('story-screen').classList.contains('active')) {
+            if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); advanceDialogue(); }
+        }
+    });
+    loadSave();
+    startLoading();
+    </script>
+</body>
+</html>
