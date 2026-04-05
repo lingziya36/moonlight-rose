@@ -1,0 +1,63 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Install Cordova
+      run: npm install -g cordova
+      
+    - name: Add Android platform
+      run: cordova platform add android
+      
+    - name: Build Debug APK
+      run: cordova build android --debug
+      
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: moonlight-rose-apk
+        path: platforms/android/app/build/outputs/apk/debug/app-debug.apk
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      with:
+        tag_name: v${{ github.run_number }}
+        name: 月光蔷薇学园 v${{ github.run_number }}
+        body: |
+          🌹 月光蔷薇学园：命运的约定
+          
+          安装说明：
+          1. 下载 `app-debug.apk`
+          2. 安卓设置 → 安全 → 允许安装未知来源应用
+          3. 点击安装
+          
+          游戏特色：
+          - 精美哥特风视觉小说
+          - 暖暖风格换装系统
+          - 凌子养成互动
+          - CG收集画廊
+        files: platforms/android/app/build/outputs/apk/debug/app-debug.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
